@@ -1,0 +1,28 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.venv/
+env/
+venv/
+ENV/
+*.log
+
+# Databases & Volumes
+postgres_data/
+
+# Environment Secrets
+.env
+
+# OS / IDE
+.DS_Store
+.vscode/
+.idea/
+
+# Agent System Generated Logs & Test Scratchpad
+.system_generated/
+scratch/
+task.md
+walkthrough.md
+implementation_plan.md

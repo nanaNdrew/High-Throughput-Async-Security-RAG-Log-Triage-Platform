@@ -1,0 +1,1404 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AEGIS // Security RAG & Log Triage Platform</title>
+    
+    <!-- Typography & Icons -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+    
+    <style>
+        /* --- CSS Reset & Variables --- */
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        
+        :root {
+            /* Palette: Deep Space Dark Mode */
+            --bg-base: hsl(222, 47%, 4%);
+            --bg-surface: rgba(13, 20, 38, 0.45);
+            --bg-surface-solid: hsl(222, 40%, 9%);
+            --bg-card: rgba(22, 33, 62, 0.35);
+            --border-glow: rgba(0, 242, 254, 0.1);
+            --border-subtle: rgba(255, 255, 255, 0.05);
+            
+            /* Accent Colors */
+            --cyan: hsl(180, 100%, 50%);
+            --cyan-glow: hsla(180, 100%, 50%, 0.15);
+            --purple: hsl(272, 90%, 65%);
+            --purple-glow: hsla(272, 90%, 65%, 0.15);
+            
+            /* Severities */
+            --critical: hsl(0, 95%, 60%);
+            --critical-glow: hsla(0, 95%, 60%, 0.2);
+            --error: hsl(15, 95%, 60%);
+            --error-glow: hsla(15, 95%, 60%, 0.2);
+            --warning: hsl(45, 100%, 55%);
+            --warning-glow: hsla(45, 100%, 55%, 0.2);
+            --info: hsl(200, 100%, 60%);
+            --info-glow: hsla(200, 100%, 60%, 0.2);
+            --debug: hsl(140, 50%, 60%);
+            --debug-glow: hsla(140, 50%, 60%, 0.2);
+            
+            /* Text colors */
+            --text-primary: hsl(210, 40%, 98%);
+            --text-secondary: hsl(215, 25%, 72%);
+            --text-muted: hsl(215, 16%, 50%);
+            
+            /* Layout & Transitions */
+            --font-main: 'Outfit', sans-serif;
+            --font-mono: 'JetBrains Mono', monospace;
+            --radius-lg: 16px;
+            --radius-md: 10px;
+            --radius-sm: 6px;
+            --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            --transition-bounce: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        body {
+            background-color: var(--bg-base);
+            background-image: 
+                radial-gradient(at 0% 0%, hsla(272, 90%, 55%, 0.05) 0px, transparent 50%),
+                radial-gradient(at 100% 100%, hsla(180, 100%, 50%, 0.04) 0px, transparent 50%),
+                linear-gradient(rgba(255, 255, 255, 0.007) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(255, 255, 255, 0.007) 1px, transparent 1px);
+            background-size: 100% 100%, 100% 100%, 40px 40px, 40px 40px;
+            color: var(--text-primary);
+            font-family: var(--font-main);
+            min-height: 100vh;
+            line-height: 1.5;
+            overflow-x: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* --- Scrollbar --- */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: rgba(0, 0, 0, 0.1);
+        }
+        ::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        /* --- Header Styles --- */
+        header {
+            padding: 20px 40px;
+            border-bottom: 1px solid var(--border-subtle);
+            backdrop-filter: blur(12px);
+            background: rgba(8, 12, 28, 0.6);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .logo-section {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .logo-symbol {
+            width: 32px;
+            height: 32px;
+            background: linear-gradient(135deg, var(--cyan), var(--purple));
+            border-radius: var(--radius-sm);
+            transform: rotate(45deg);
+            position: relative;
+            box-shadow: 0 0 20px rgba(0, 242, 254, 0.4);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .logo-symbol::before {
+            content: '';
+            width: 12px;
+            height: 12px;
+            background-color: var(--bg-base);
+            border-radius: 2px;
+        }
+
+        .logo-text h1 {
+            font-size: 22px;
+            font-weight: 800;
+            letter-spacing: 2px;
+            background: linear-gradient(to right, var(--cyan), #fff);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-transform: uppercase;
+        }
+
+        .logo-text span {
+            font-size: 10px;
+            font-weight: 500;
+            color: var(--text-muted);
+            letter-spacing: 4px;
+            text-transform: uppercase;
+            display: block;
+            margin-top: -2px;
+        }
+
+        .status-indicators {
+            display: flex;
+            gap: 24px;
+        }
+
+        .status-pill {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 8px 16px;
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid var(--border-subtle);
+            border-radius: 50px;
+            font-size: 13px;
+            font-weight: 500;
+        }
+
+        .status-indicator-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background-color: var(--cyan);
+            box-shadow: 0 0 10px var(--cyan);
+            animation: pulse-glow 2s infinite;
+        }
+
+        .status-indicator-dot.error {
+            background-color: var(--critical);
+            box-shadow: 0 0 10px var(--critical);
+        }
+
+        .status-indicator-dot.warning {
+            background-color: var(--warning);
+            box-shadow: 0 0 10px var(--warning);
+            animation: none;
+        }
+
+        .queue-badge {
+            font-family: var(--font-mono);
+            font-weight: 700;
+            background: rgba(0, 242, 254, 0.1);
+            color: var(--cyan);
+            padding: 2px 8px;
+            border-radius: 4px;
+            margin-left: 4px;
+        }
+
+        /* --- Main Layout --- */
+        main {
+            flex: 1;
+            padding: 30px 40px;
+            display: grid;
+            grid-template-columns: 360px 1fr;
+            gap: 30px;
+            max-width: 1800px;
+            width: 100%;
+            margin: 0 auto;
+        }
+
+        /* --- Sidebar & Cards --- */
+        .sidebar {
+            display: flex;
+            flex-direction: column;
+            gap: 25px;
+        }
+
+        .glass-card {
+            background: var(--bg-surface);
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-lg);
+            backdrop-filter: blur(16px);
+            padding: 24px;
+            transition: var(--transition-smooth);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .glass-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 2px;
+            background: linear-gradient(to right, transparent, var(--border-glow), transparent);
+            opacity: 0;
+            transition: var(--transition-smooth);
+        }
+
+        .glass-card:hover {
+            border-color: rgba(0, 242, 254, 0.15);
+            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.4);
+            transform: translateY(-2px);
+        }
+
+        .glass-card:hover::before {
+            opacity: 1;
+        }
+
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .card-title {
+            font-size: 16px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            color: var(--text-primary);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .card-title::before {
+            content: '';
+            width: 4px;
+            height: 16px;
+            background: var(--cyan);
+            border-radius: 4px;
+            display: inline-block;
+        }
+
+        .card-action {
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--cyan);
+            cursor: pointer;
+            font-weight: 600;
+            transition: var(--transition-smooth);
+        }
+
+        .card-action:hover {
+            color: #fff;
+            text-shadow: 0 0 8px var(--cyan);
+        }
+
+        /* --- Ingestion Simulator Form --- */
+        .simulation-btn-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 12px;
+            margin-bottom: 16px;
+        }
+
+        .btn-simulator {
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-md);
+            padding: 12px 16px;
+            text-align: left;
+            cursor: pointer;
+            transition: var(--transition-smooth);
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .btn-simulator:hover {
+            background: rgba(0, 242, 254, 0.04);
+            border-color: rgba(0, 242, 254, 0.25);
+            transform: translateX(4px);
+        }
+
+        .btn-simulator .title {
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .btn-simulator .desc {
+            font-size: 11px;
+            color: var(--text-muted);
+        }
+
+        .log-textarea {
+            width: 100%;
+            height: 140px;
+            background: rgba(0, 0, 0, 0.25);
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-md);
+            padding: 12px;
+            font-family: var(--font-mono);
+            font-size: 11px;
+            color: var(--text-secondary);
+            resize: none;
+            outline: none;
+            transition: var(--transition-smooth);
+            margin-bottom: 16px;
+        }
+
+        .log-textarea:focus {
+            border-color: rgba(0, 242, 254, 0.3);
+            box-shadow: 0 0 10px rgba(0, 242, 254, 0.1);
+        }
+
+        .btn-primary {
+            width: 100%;
+            background: linear-gradient(135deg, var(--cyan), var(--purple));
+            color: var(--bg-base);
+            font-weight: 700;
+            font-size: 14px;
+            padding: 14px;
+            border: none;
+            border-radius: var(--radius-md);
+            cursor: pointer;
+            transition: var(--transition-bounce);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 8px;
+            box-shadow: 0 4px 20px rgba(0, 242, 254, 0.2);
+        }
+
+        .btn-primary:hover {
+            transform: scale(1.02);
+            box-shadow: 0 6px 24px rgba(0, 242, 254, 0.4), 0 0 40px rgba(180, 70, 255, 0.2);
+            color: #fff;
+        }
+
+        .btn-primary:active {
+            transform: scale(0.98);
+        }
+
+        /* --- Stats Panel --- */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+        }
+
+        .stat-item {
+            background: rgba(0, 0, 0, 0.2);
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-md);
+            padding: 16px;
+            text-align: center;
+        }
+
+        .stat-value {
+            font-family: var(--font-mono);
+            font-size: 24px;
+            font-weight: 700;
+            color: var(--cyan);
+            margin-bottom: 4px;
+            text-shadow: 0 0 10px rgba(0, 242, 254, 0.2);
+        }
+
+        .stat-label {
+            font-size: 11px;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        /* --- Main Dashboard Panel --- */
+        .content-panel {
+            display: flex;
+            flex-direction: column;
+            gap: 25px;
+        }
+
+        /* --- RAG Analyst Panel --- */
+        .analyst-panel {
+            background: radial-gradient(circle at 10% 10%, rgba(13, 25, 60, 0.5), rgba(8, 12, 28, 0.3));
+            border-color: rgba(180, 70, 255, 0.15);
+        }
+
+        .analyst-panel:hover {
+            border-color: rgba(180, 70, 255, 0.3);
+        }
+
+        .analyst-panel::before {
+            background: linear-gradient(to right, transparent, rgba(180, 70, 255, 0.2), transparent);
+        }
+
+        .query-bar {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 16px;
+        }
+
+        .query-input-wrapper {
+            flex: 1;
+            position: relative;
+        }
+
+        .query-input {
+            width: 100%;
+            background: rgba(0, 0, 0, 0.35);
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-md);
+            padding: 16px 20px;
+            font-family: var(--font-main);
+            font-size: 15px;
+            color: var(--text-primary);
+            outline: none;
+            transition: var(--transition-smooth);
+        }
+
+        .query-input:focus {
+            border-color: var(--purple);
+            box-shadow: 0 0 15px rgba(180, 70, 255, 0.15);
+            background: rgba(0, 0, 0, 0.45);
+        }
+
+        .btn-analyst {
+            background: linear-gradient(135deg, var(--purple), hsl(290, 90%, 60%));
+            color: #fff;
+            font-weight: 700;
+            border: none;
+            border-radius: var(--radius-md);
+            padding: 0 24px;
+            cursor: pointer;
+            transition: var(--transition-bounce);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            box-shadow: 0 4px 15px rgba(180, 70, 255, 0.25);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn-analyst:hover {
+            transform: scale(1.02);
+            box-shadow: 0 6px 20px rgba(180, 70, 255, 0.4);
+        }
+
+        .query-pills {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-bottom: 24px;
+        }
+
+        .query-pill {
+            font-size: 11px;
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid var(--border-subtle);
+            color: var(--text-secondary);
+            padding: 6px 12px;
+            border-radius: 50px;
+            cursor: pointer;
+            transition: var(--transition-smooth);
+        }
+
+        .query-pill:hover {
+            background: var(--purple-glow);
+            border-color: rgba(180, 70, 255, 0.3);
+            color: var(--purple);
+        }
+
+        /* --- Analysis Output Card --- */
+        .analysis-output-container {
+            display: none;
+            flex-direction: column;
+            gap: 20px;
+            animation: slide-up 0.4s ease-out;
+        }
+
+        .report-card {
+            background: rgba(180, 70, 255, 0.04);
+            border: 1px dashed rgba(180, 70, 255, 0.25);
+            border-radius: var(--radius-md);
+            padding: 20px;
+            position: relative;
+        }
+
+        .report-header {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 12px;
+            font-size: 12px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            color: var(--purple);
+        }
+
+        .report-text {
+            font-size: 14px;
+            color: var(--text-primary);
+            line-height: 1.6;
+        }
+
+        /* Context Logs list */
+        .matched-contexts-title {
+            font-size: 12px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            color: var(--text-muted);
+            margin-bottom: 10px;
+        }
+
+        .matched-contexts-list {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .context-item {
+            background: rgba(0, 0, 0, 0.2);
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-md);
+            padding: 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            transition: var(--transition-smooth);
+        }
+
+        .context-item:hover {
+            border-color: rgba(255, 255, 255, 0.1);
+            background: rgba(255, 255, 255, 0.01);
+        }
+
+        .context-meta {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .context-left {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .score-badge {
+            font-family: var(--font-mono);
+            font-size: 11px;
+            font-weight: 700;
+            background: rgba(180, 70, 255, 0.15);
+            color: var(--purple);
+            padding: 2px 8px;
+            border-radius: 4px;
+            border: 1px solid rgba(180, 70, 255, 0.2);
+        }
+
+        .context-text {
+            font-family: var(--font-mono);
+            font-size: 12px;
+            color: var(--text-secondary);
+            background: rgba(0, 0, 0, 0.15);
+            padding: 10px;
+            border-radius: var(--radius-sm);
+            border-left: 2px solid var(--purple);
+            overflow-x: auto;
+            white-space: pre-wrap;
+        }
+
+        /* --- Live Feed Panel --- */
+        .triage-panel {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            min-height: 400px;
+            max-height: 700px;
+        }
+
+        .feed-filters {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            gap: 16px;
+            flex-wrap: wrap;
+        }
+
+        .filter-buttons {
+            display: flex;
+            gap: 8px;
+        }
+
+        .filter-btn {
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid var(--border-subtle);
+            padding: 6px 14px;
+            border-radius: 50px;
+            font-size: 12px;
+            font-weight: 500;
+            color: var(--text-secondary);
+            cursor: pointer;
+            transition: var(--transition-smooth);
+        }
+
+        .filter-btn:hover {
+            background: rgba(255, 255, 255, 0.05);
+            border-color: rgba(255, 255, 255, 0.15);
+        }
+
+        .filter-btn.active {
+            background: rgba(0, 242, 254, 0.1);
+            border-color: var(--cyan);
+            color: var(--cyan);
+            font-weight: 600;
+        }
+
+        .search-filter-wrapper {
+            display: flex;
+            gap: 8px;
+        }
+
+        .filter-select {
+            background: rgba(0, 0, 0, 0.35);
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-sm);
+            color: var(--text-secondary);
+            font-size: 12px;
+            padding: 6px 12px;
+            outline: none;
+            cursor: pointer;
+        }
+
+        .filter-select:focus {
+            border-color: var(--cyan);
+        }
+
+        .log-feed-list {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            overflow-y: auto;
+            flex: 1;
+            padding-right: 4px;
+        }
+
+        .log-row {
+            background: rgba(22, 33, 62, 0.15);
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-md);
+            padding: 14px 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            transition: var(--transition-smooth);
+            cursor: pointer;
+            position: relative;
+        }
+
+        .log-row::after {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 0;
+            bottom: 0;
+            width: 3px;
+            background-color: var(--info);
+            border-radius: var(--radius-sm) 0 0 var(--radius-sm);
+        }
+
+        .log-row.critical::after { background-color: var(--critical); }
+        .log-row.error::after { background-color: var(--error); }
+        .log-row.warning::after { background-color: var(--warning); }
+        .log-row.info::after { background-color: var(--info); }
+        .log-row.debug::after { background-color: var(--debug); }
+
+        .log-row:hover {
+            background: rgba(22, 33, 62, 0.25);
+            border-color: rgba(255, 255, 255, 0.08);
+            transform: translateX(4px);
+        }
+
+        .log-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .log-metadata {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .severity-badge {
+            font-size: 10px;
+            font-weight: 800;
+            letter-spacing: 0.5px;
+            padding: 3px 8px;
+            border-radius: 4px;
+            text-transform: uppercase;
+        }
+
+        .severity-badge.critical {
+            background: var(--critical-glow);
+            color: var(--critical);
+            border: 1px solid rgba(255, 50, 50, 0.25);
+        }
+        .severity-badge.error {
+            background: var(--error-glow);
+            color: var(--error);
+            border: 1px solid rgba(255, 100, 50, 0.25);
+        }
+        .severity-badge.warning {
+            background: var(--warning-glow);
+            color: var(--warning);
+            border: 1px solid rgba(255, 200, 50, 0.25);
+        }
+        .severity-badge.info {
+            background: var(--info-glow);
+            color: var(--info);
+            border: 1px solid rgba(50, 200, 255, 0.25);
+        }
+
+        .service-tag {
+            font-size: 12px;
+            color: var(--text-secondary);
+            font-weight: 600;
+            background: rgba(255, 255, 255, 0.03);
+            padding: 2px 8px;
+            border-radius: 4px;
+            border: 1px solid var(--border-subtle);
+        }
+
+        .log-time {
+            font-family: var(--font-mono);
+            font-size: 11px;
+            color: var(--text-muted);
+        }
+
+        .log-summary {
+            font-family: var(--font-mono);
+            font-size: 12px;
+            color: var(--text-secondary);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .log-details {
+            display: none;
+            font-family: var(--font-mono);
+            font-size: 12px;
+            color: var(--text-secondary);
+            background: rgba(0, 0, 0, 0.25);
+            padding: 12px;
+            border-radius: var(--radius-sm);
+            margin-top: 6px;
+            border: 1px solid var(--border-subtle);
+            white-space: pre-wrap;
+            word-break: break-all;
+            animation: fade-in 0.3s ease-out;
+        }
+
+        .log-row.expanded .log-details {
+            display: block;
+        }
+
+        .log-row.expanded .log-summary {
+            white-space: normal;
+            overflow: visible;
+        }
+
+        /* --- Loading and Empty states --- */
+        .loading-spinner {
+            border: 2px solid rgba(255, 255, 255, 0.05);
+            border-top: 2px solid var(--cyan);
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            animation: spin 0.8s linear infinite;
+            margin: 20px auto;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 40px 20px;
+            color: var(--text-muted);
+            font-size: 14px;
+        }
+
+        /* --- Keyframe Animations --- */
+        @keyframes pulse-glow {
+            0% { box-shadow: 0 0 5px var(--cyan); opacity: 0.6; }
+            50% { box-shadow: 0 0 15px var(--cyan); opacity: 1; }
+            100% { box-shadow: 0 0 5px var(--cyan); opacity: 0.6; }
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        @keyframes slide-up {
+            from { opacity: 0; transform: translateY(15px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @keyframes fade-in {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        /* --- Custom simulation tag layouts --- */
+        .sim-meta {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            width: 100%;
+        }
+
+        .sim-severity-indicator {
+            font-size: 9px;
+            padding: 1px 6px;
+            border-radius: 3px;
+            text-transform: uppercase;
+            font-weight: 700;
+        }
+        .sim-severity-indicator.critical { background: var(--critical-glow); color: var(--critical); }
+        .sim-severity-indicator.warning { background: var(--warning-glow); color: var(--warning); }
+        .sim-severity-indicator.info { background: var(--info-glow); color: var(--info); }
+    </style>
+</head>
+<body>
+
+    <!-- Header -->
+    <header>
+        <div class="logo-section">
+            <div class="logo-symbol"></div>
+            <div class="logo-text">
+                <h1>Aegis</h1>
+                <span>Security RAG Engine</span>
+            </div>
+        </div>
+        
+        <div class="status-indicators">
+            <div class="status-pill">
+                <div class="status-indicator-dot" id="api-status-dot"></div>
+                <span>API Node: <strong id="api-status-text">Connecting</strong></span>
+            </div>
+            
+            <div class="status-pill">
+                <span>Ingestion Queue: <strong class="queue-badge" id="queue-size-badge">0</strong></span>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main>
+        
+        <!-- Sidebar controls -->
+        <div class="sidebar">
+            
+            <!-- Ingest Simulator Form -->
+            <div class="glass-card">
+                <div class="card-header">
+                    <h2 class="card-title">Live Log Simulator</h2>
+                </div>
+                
+                <div class="simulation-btn-grid">
+                    <button class="btn-simulator" onclick="loadSimulation('brute-force')">
+                        <div class="sim-meta">
+                            <span class="title">SSH Brute Force Attack</span>
+                            <span class="sim-severity-indicator critical">Critical</span>
+                        </div>
+                        <span class="desc">Simulates multiple failed SSH logins on auth-service.</span>
+                    </button>
+                    
+                    <button class="btn-simulator" onclick="loadSimulation('sql-injection')">
+                        <div class="sim-meta">
+                            <span class="title">SQL Injection Attempt</span>
+                            <span class="sim-severity-indicator critical">Critical</span>
+                        </div>
+                        <span class="desc">Simulates malicious pattern matching in web-gateway.</span>
+                    </button>
+                    
+                    <button class="btn-simulator" onclick="loadSimulation('db-latency')">
+                        <div class="sim-meta">
+                            <span class="title">Database Query Latency</span>
+                            <span class="sim-severity-indicator warning">Warning</span>
+                        </div>
+                        <span class="desc">Simulates high CPU load and execution plan warnings.</span>
+                    </button>
+                    
+                    <button class="btn-simulator" onclick="loadSimulation('normal-traffic')">
+                        <div class="sim-meta">
+                            <span class="title">Normal Gateway Traffic</span>
+                            <span class="sim-severity-indicator info">Info</span>
+                        </div>
+                        <span class="desc">Simulates typical health checks and user logouts.</span>
+                    </button>
+                </div>
+                
+                <form id="ingest-form" onsubmit="handleIngest(event)">
+                    <textarea class="log-textarea" id="log-raw-input" placeholder="Paste raw log data here or select a simulation scenario above..." required></textarea>
+                    
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 12px;">
+                        <div>
+                            <label style="font-size: 11px; color: var(--text-muted); display: block; margin-bottom: 4px;">Service</label>
+                            <input class="filter-select" type="text" id="log-service-input" value="auth-service" style="width: 100%;" required>
+                        </div>
+                        <div>
+                            <label style="font-size: 11px; color: var(--text-muted); display: block; margin-bottom: 4px;">Severity</label>
+                            <select class="filter-select" id="log-severity-input" style="width: 100%;">
+                                <option value="INFO">INFO</option>
+                                <option value="WARNING">WARNING</option>
+                                <option value="ERROR">ERROR</option>
+                                <option value="CRITICAL" selected>CRITICAL</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <button class="btn-primary" type="submit">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                        Stream Ingest Event
+                    </button>
+                </form>
+            </div>
+            
+            <!-- Statistics Card -->
+            <div class="glass-card">
+                <div class="card-header">
+                    <h2 class="card-title">System Metrics</h2>
+                </div>
+                <div class="stats-grid">
+                    <div class="stat-item">
+                        <div class="stat-value" id="stats-total-logs">0</div>
+                        <div class="stat-label">Total Logs</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value" id="stats-active-queries">0</div>
+                        <div class="stat-label">RAG Queries</div>
+                    </div>
+                </div>
+            </div>
+            
+        </div>
+        
+        <!-- Main Dashboard Column -->
+        <div class="content-panel">
+            
+            <!-- RAG Analyst Panel -->
+            <div class="glass-card analyst-panel">
+                <div class="card-header">
+                    <h2 class="card-title" style="color: var(--purple); font-weight: 700;">Security RAG Analyst</h2>
+                </div>
+                
+                <div class="query-bar">
+                    <div class="query-input-wrapper">
+                        <input class="query-input" type="text" id="rag-query-input" placeholder="Ask Aegis to analyze anomalies (e.g., 'explain brute force root cause')...">
+                    </div>
+                    <button class="btn-analyst" onclick="runRAGQuery()">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+                        Analyze
+                    </button>
+                </div>
+                
+                <div class="query-pills">
+                    <span class="query-pill" onclick="setPillQuery('brute force attack root cause')">brute force root cause</span>
+                    <span class="query-pill" onclick="setPillQuery('unauthorized login attempts')">unauthorized access attempts</span>
+                    <span class="query-pill" onclick="setPillQuery('database latency query plan load')">database query latency</span>
+                    <span class="query-pill" onclick="setPillQuery('sql injection vulnerability check')">sql injection patterns</span>
+                </div>
+                
+                <!-- RAG Results Output -->
+                <div class="analysis-output-container" id="rag-output-container">
+                    <!-- LLM report -->
+                    <div class="report-card">
+                        <div class="report-header">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 4px;"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"></path></svg>
+                            Synthesized Root Cause Report
+                        </div>
+                        <div class="report-text" id="rag-report-text">Generating analysis...</div>
+                    </div>
+                    
+                    <!-- Dense matching contexts -->
+                    <div>
+                        <h3 class="matched-contexts-title">Relevant Retrieved Context Chunks</h3>
+                        <div class="matched-contexts-list" id="rag-contexts-list">
+                            <!-- Populated dynamically -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Log Triage Feed -->
+            <div class="glass-card triage-panel">
+                <div class="card-header">
+                    <h2 class="card-title">Live Log Triage</h2>
+                    <div class="card-action" onclick="refreshLogFeed()">Refresh Feed</div>
+                </div>
+                
+                <div class="feed-filters">
+                    <!-- Severity Filters -->
+                    <div class="filter-buttons">
+                        <button class="filter-btn active" id="filter-all" onclick="setSeverityFilter(null)">ALL</button>
+                        <button class="filter-btn" id="filter-critical" onclick="setSeverityFilter('CRITICAL')">CRITICAL</button>
+                        <button class="filter-btn" id="filter-error" onclick="setSeverityFilter('ERROR')">ERROR</button>
+                        <button class="filter-btn" id="filter-warning" onclick="setSeverityFilter('WARNING')">WARNING</button>
+                        <button class="filter-btn" id="filter-info" onclick="setSeverityFilter('INFO')">INFO</button>
+                    </div>
+                    
+                    <!-- Service dropdown -->
+                    <div class="search-filter-wrapper">
+                        <select class="filter-select" id="filter-service-select" onchange="handleServiceFilterChange()">
+                            <option value="">All Services</option>
+                            <option value="auth-service">auth-service</option>
+                            <option value="database">database</option>
+                            <option value="web-gateway">web-gateway</option>
+                            <option value="payment-api">payment-api</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <!-- Scrollable Log List -->
+                <div class="log-feed-list" id="log-list-container">
+                    <div class="empty-state">No log entries found. Start by streaming ingestion events.</div>
+                </div>
+            </div>
+            
+        </div>
+        
+    </main>
+
+    <!-- JavaScript Application Logic -->
+    <script>
+        // --- Global State ---
+        let currentSeverityFilter = null;
+        let currentServiceFilter = "";
+        let pollTimer = null;
+        let queryCounter = 0;
+        
+        // Simulated Event Library
+        const SIMULATIONS = {
+            'brute-force': {
+                service: 'auth-service',
+                severity: 'CRITICAL',
+                text: 'Failed SSH login attempt for user root from unauthorized IP 192.168.1.105. Access denied. Port 22 security trigger activated.'
+            },
+            'sql-injection': {
+                service: 'web-gateway',
+                severity: 'CRITICAL',
+                text: 'CRITICAL WARNING: Web application firewall intercepted SQL injection pattern in query string parameter "id": "1 UNION SELECT username, password_hash FROM users". Blocked request.'
+            },
+            'db-latency': {
+                service: 'database',
+                severity: 'WARNING',
+                text: 'Database health warning: query optimizer detected heavy index scan on users table. Latency spike: 2340ms. CPU usage at 91% capacity.'
+            },
+            'normal-traffic': {
+                service: 'web-gateway',
+                severity: 'INFO',
+                text: 'HTTP 200 OK GET /api/v1/health - response_time: 12ms status: healthy. Service agent heartbeat check successful.'
+            }
+        };
+
+        // --- Event Handlers & Dom Manipulation ---
+        
+        window.addEventListener('DOMContentLoaded', () => {
+            // Initial checks
+            checkHealth();
+            refreshLogFeed();
+            
+            // Poll health every 3 seconds for queue updates
+            pollTimer = setInterval(checkHealth, 3000);
+        });
+
+        // Set query pill content
+        function setPillQuery(queryText) {
+            document.getElementById('rag-query-input').value = queryText;
+            runRAGQuery();
+        }
+
+        // Load simulation configuration into the input boxes
+        function loadSimulation(key) {
+            const config = SIMULATIONS[key];
+            if (!config) return;
+            
+            document.getElementById('log-raw-input').value = config.text;
+            document.getElementById('log-service-input').value = config.service;
+            document.getElementById('log-severity-input').value = config.severity;
+            
+            // Pulse color warning on the textarea briefly
+            const ta = document.getElementById('log-raw-input');
+            ta.style.borderColor = 'var(--cyan)';
+            setTimeout(() => { ta.style.borderColor = 'var(--border-subtle)'; }, 500);
+        }
+
+        // Health & Connection Checker
+        async function checkHealth() {
+            try {
+                const response = await fetch('/health');
+                const data = await response.json();
+                
+                // Update dots
+                const dot = document.getElementById('api-status-dot');
+                const text = document.getElementById('api-status-text');
+                
+                dot.className = "status-indicator-dot"; // reset
+                text.textContent = "Online";
+                text.style.color = "var(--cyan)";
+                
+                // Update queue
+                const queueBadge = document.getElementById('queue-size-badge');
+                queueBadge.textContent = data.queue_size;
+                if (data.queue_size > 0) {
+                    queueBadge.style.background = "rgba(255, 100, 50, 0.15)";
+                    queueBadge.style.color = "var(--error)";
+                    dot.className = "status-indicator-dot warning";
+                    text.textContent = "Processing Queue";
+                    text.style.color = "var(--warning)";
+                } else {
+                    queueBadge.style.background = "rgba(0, 242, 254, 0.1)";
+                    queueBadge.style.color = "var(--cyan)";
+                }
+            } catch (err) {
+                const dot = document.getElementById('api-status-dot');
+                const text = document.getElementById('api-status-text');
+                dot.className = "status-indicator-dot error";
+                text.textContent = "Offline / Error";
+                text.style.color = "var(--critical)";
+            }
+        }
+
+        // Submitting log streams
+        async function handleIngest(event) {
+            event.preventDefault();
+            
+            const rawText = document.getElementById('log-raw-input').value;
+            const service = document.getElementById('log-service-input').value;
+            const severity = document.getElementById('log-severity-input').value;
+            
+            const payload = {
+                logs: [
+                    {
+                        timestamp: new Date().toISOString(),
+                        severity: severity,
+                        service: service,
+                        raw_text: rawText
+                    }
+                ]
+            };
+            
+            try {
+                const response = await fetch('/api/v1/logs/stream', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                
+                if (response.status === 202) {
+                    // Success, clear log input
+                    document.getElementById('log-raw-input').value = "";
+                    checkHealth();
+                    
+                    // Delay log feed refresh slightly to let workers write to Postgres
+                    setTimeout(() => {
+                        refreshLogFeed();
+                    }, 1200);
+                } else {
+                    alert("Failed to submit event: Server returned code " + response.status);
+                }
+            } catch (err) {
+                alert("Failed to submit event: " + err.message);
+            }
+        }
+
+        // Fetch logs and render log triage list
+        async function refreshLogFeed() {
+            const listContainer = document.getElementById('log-list-container');
+            
+            // Build query params
+            let url = '/api/v1/logs?limit=50';
+            if (currentSeverityFilter) {
+                url += `&severity=${currentSeverityFilter}`;
+            }
+            if (currentServiceFilter) {
+                url += `&service=${currentServiceFilter}`;
+            }
+            
+            try {
+                // Show loading spinner
+                listContainer.innerHTML = '<div class="loading-spinner"></div>';
+                
+                const response = await fetch(url);
+                const logs = await response.json();
+                
+                if (!logs || logs.length === 0) {
+                    listContainer.innerHTML = '<div class="empty-state">No log entries found. Start by streaming ingestion events.</div>';
+                    document.getElementById('stats-total-logs').textContent = "0";
+                    return;
+                }
+                
+                // Update Stats Total Logs count
+                document.getElementById('stats-total-logs').textContent = logs.length;
+                
+                // Build lists
+                let html = '';
+                logs.forEach(log => {
+                    const sevClass = log.severity ? log.severity.toLowerCase() : 'info';
+                    const formattedTime = formatISOTimestamp(log.timestamp);
+                    
+                    html += `
+                        <div class="log-row ${sevClass}" onclick="toggleLogExpand(this)">
+                            <div class="log-header">
+                                <div class="log-metadata">
+                                    <span class="severity-badge ${sevClass}">${log.severity}</span>
+                                    <span class="service-tag">${escapeHtml(log.service)}</span>
+                                </div>
+                                <span class="log-time">${formattedTime}</span>
+                            </div>
+                            <div class="log-summary">${escapeHtml(log.raw_text)}</div>
+                            <div class="log-details">${escapeHtml(log.raw_text)}</div>
+                        </div>
+                    `;
+                });
+                
+                listContainer.innerHTML = html;
+            } catch (err) {
+                listContainer.innerHTML = `<div class="empty-state" style="color: var(--critical)">Failed to retrieve logs feed: ${err.message}</div>`;
+            }
+        }
+
+        // Execute RAG queries
+        async function runRAGQuery() {
+            const queryInput = document.getElementById('rag-query-input');
+            const query = queryInput.value.trim();
+            if (!query) return;
+            
+            const outputContainer = document.getElementById('rag-output-container');
+            const reportText = document.getElementById('rag-report-text');
+            const contextsList = document.getElementById('rag-contexts-list');
+            
+            // Show container & reset states
+            outputContainer.style.display = 'flex';
+            reportText.textContent = "Analyzing context files and drafting report...";
+            contextsList.innerHTML = '<div class="loading-spinner" style="margin: 20px 0;"></div>';
+            
+            try {
+                const response = await fetch('/api/v1/analyst/query', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ query: query, limit: 5 })
+                });
+                
+                const data = await response.json();
+                
+                // Increment query stats counter
+                queryCounter++;
+                document.getElementById('stats-active-queries').textContent = queryCounter;
+                
+                // 1. Text typing effect for the RAG report
+                typeWriteEffect(reportText, data.root_cause_analysis);
+                
+                // 2. Render contexts
+                if (!data.results || data.results.length === 0) {
+                    contextsList.innerHTML = '<div class="empty-state" style="padding: 10px;">No dense matches retrieved for this security event.</div>';
+                    return;
+                }
+                
+                let contextHtml = '';
+                data.results.forEach(res => {
+                    const score = res.final_score ? res.final_score.toFixed(4) : "0.000";
+                    const formattedTime = formatISOTimestamp(res.timestamp);
+                    const sevClass = res.severity ? res.severity.toLowerCase() : 'info';
+                    
+                    contextHtml += `
+                        <div class="context-item">
+                            <div class="context-meta">
+                                <div class="context-left">
+                                    <span class="score-badge">Rank Score: ${score}</span>
+                                    <span class="severity-badge ${sevClass}">${res.severity}</span>
+                                    <span class="service-tag">${escapeHtml(res.service)}</span>
+                                </div>
+                                <span class="log-time">${formattedTime}</span>
+                            </div>
+                            <div class="context-text">${escapeHtml(res.chunk_text)}</div>
+                        </div>
+                    `;
+                });
+                
+                contextsList.innerHTML = contextHtml;
+            } catch (err) {
+                reportText.textContent = "Error: Failed to process security search pipeline query.";
+                contextsList.innerHTML = `<div class="empty-state" style="color: var(--critical)">Failed query: ${err.message}</div>`;
+            }
+        }
+
+        // Toggle feed filters
+        function setSeverityFilter(severity) {
+            currentSeverityFilter = severity;
+            
+            // Remove active classes
+            document.querySelectorAll('.filter-btn').forEach(btn => btn.classList.remove('active'));
+            
+            // Set active class
+            if (severity === null) document.getElementById('filter-all').classList.add('active');
+            else document.getElementById('filter-' + severity.toLowerCase()).classList.add('active');
+            
+            refreshLogFeed();
+        }
+
+        function handleServiceFilterChange() {
+            currentServiceFilter = document.getElementById('filter-service-select').value;
+            refreshLogFeed();
+        }
+
+        // Toggle logs accordion/expand
+        function toggleLogExpand(element) {
+            element.classList.toggle('expanded');
+        }
+
+        // Typewriting effect helper
+        function typeWriteEffect(element, text) {
+            element.textContent = "";
+            let i = 0;
+            const speed = 10; // ms per char
+            function type() {
+                if (i < text.length) {
+                    element.textContent += text.charAt(i);
+                    i++;
+                    setTimeout(type, speed);
+                }
+            }
+            type();
+        }
+
+        // Formatting utilities
+        function formatISOTimestamp(isoString) {
+            if (!isoString) return 'unknown';
+            try {
+                const date = new Date(isoString);
+                return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false }) + '.' + String(date.getMilliseconds()).padStart(3, '0');
+            } catch (e) {
+                return isoString;
+            }
+        }
+
+        function escapeHtml(unsafe) {
+            return unsafe
+                 .replace(/&/g, "&amp;")
+                 .replace(/</g, "&lt;")
+                 .replace(/>/g, "&gt;")
+                 .replace(/"/g, "&quot;")
+                 .replace(/'/g, "&#039;");
+        }
+    </script>
+</body>
+</html>

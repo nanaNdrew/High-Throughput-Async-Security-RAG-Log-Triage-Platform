@@ -1,0 +1,36 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: ancane/pgvector:latest
+    container_name: log_triage_postgres
+    environment:
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: log_triage
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U admin -d log_triage"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  api:
+    build: 
+      context: ./apps/python_backend
+    container_name: log_triage_api
+    ports:
+      - "8000:8000"
+    environment:
+      - DATABASE_URL=postgresql+asyncpg://admin:password@postgres:5432/log_triage
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      - ./apps/python_backend:/app
+
+volumes:
+  postgres_data:
