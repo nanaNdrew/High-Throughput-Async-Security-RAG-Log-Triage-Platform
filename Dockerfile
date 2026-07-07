@@ -2,10 +2,13 @@ FROM python:3.11-slim
 
 WORKDIR /app
 
+# Install CPU-only PyTorch first to dramatically reduce RAM usage and avoid Out-Of-Memory (OOM) errors on free tiers
+RUN pip install --no-cache-dir torch --index-url https://download.pytorch.org/whl/cpu
+
 # Copy requirements from python_backend subdirectory
 COPY apps/python_backend/requirements.txt .
 
-# Install dependencies from the default PyPI registry (always accessible during Railway builds)
+# Install remaining dependencies
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy all code from the python_backend subdirectory to /app
